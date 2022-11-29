@@ -1,0 +1,68 @@
+{% include 'header.html'%}
+<body>
+
+<div class="container">
+    <div id="searchBox" class="d-flex flex-column align-items-center justify-content-center mt-5 pt-5 ">
+        <div class="fs-1 mb-4">Search Bike Point</div>
+        <div class="search-input">
+            <input class="keyword" placeholder="search your location" alt="search"/>
+            <div onclick="search(this)" class="search-btn">GO</div>
+        </div>
+    </div>
+    <div class="results hide" id="searchResults">
+        <div class="search-input">
+            <input id="keyword" class="keyword" placeholder="search your location" alt="search"/>
+            <div onclick="search(this)" class="search-btn">GO</div>
+        </div>
+        <div class="mt-4">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">Id</th>
+                    <th scope="col">Common Name</th>
+                    <th scope="col">Lat</th>
+                    <th scope="col">Lon</th>
+                </tr>
+                </thead>
+                <tbody id="tableResults">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+
+<script>
+    let keyword="";
+    function search(node) {
+        keyword = node.parentNode.querySelector('.keyword').value;
+        document.getElementById("searchBox").classList.add("hide");
+        document.getElementById("searchResults").classList.remove("hide");
+        if (keyword) {
+            document.getElementById("keyword").value = keyword;
+            fetch(`/search?query=${keyword}`).then(res => res.json()).then(data => {
+                renderResults(data);
+            })
+        }
+    }
+
+    function renderResults(data) {
+        if (data.length === 0) {
+            document.getElementById("tableResults").innerHTML = `<tr><td colspan="4" class="text-center">No results found</td></tr>`;
+        } else {
+            const tableResults = document.querySelector('#tableResults');
+            tableResults.innerHTML = '';
+            data.forEach((item) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>${item.id}</td>
+                <td>${item.commonName}</td>
+                <td>${item.lat}</td>
+                <td>${item.lon}</td>
+                `;
+                tableResults.appendChild(tr);
+            })
+        }
+    }
+</script>
+</html>
