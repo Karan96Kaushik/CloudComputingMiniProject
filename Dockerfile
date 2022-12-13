@@ -1,10 +1,10 @@
-FROM python:3
-ADD app.py /
-ADD *.py /
-ADD models/*.py /
-ADD requirements.txt /
-ADD templates/*.html /
-ADD .env /
-EXPOSE 5000
+FROM python:3.8-slim-buster
+
+COPY requirements.txt requirements.txt
+RUN pip3 install -r requirements.txt
+
+COPY . .
+
 RUN pip install -r requirements.txt
+
 CMD [ "python", "./app.py" ]

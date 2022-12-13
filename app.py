@@ -46,4 +46,5 @@ def signup():
 
 if __name__ == '__main__':
 	startup_db_client()
+	print(config)
 	app.run(debug=True)
