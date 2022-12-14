@@ -121,6 +121,7 @@ def signup():
 		email_exist = app.database['user_info'].find_one({"username":email})
 		if email_exist:
 			msg='email already existed!'
+			print(msg)
 			return render_template('signup.html',msg=msg)
 		else:
 			password = request.form.get('password')
@@ -128,11 +129,13 @@ def signup():
 			# password2 = input("please re-enter your password: ") #double check password
 			if password == password2:
 				msg = 'Signup success'
+				print(msg)
 				password = encry(password)
 				app.database['user_info'].insert_one({ "username": email, "password": password,"role": "user" })
-				return render_template('signup.html',msg=msg)
+				return render_template('login.html',msg=msg)
 			else:
 				msg = 'please check your password'
+				print(msg)
 				return render_template('signup.html',msg=msg)
 
 	if request.method == 'GET':
