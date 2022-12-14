@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, jsonify
+from flask import Flask, render_template, request, redirect, session, jsonify, make_response
 from helper import search, encry
 from dotenv import dotenv_values
 from pymongo import MongoClient
@@ -16,7 +16,8 @@ app.secret_key = 'assdggrvbsesg'
 
 @app.route('/')
 def index():
-	return render_template('index.html')
+	response = make_response(render_template('index.html'),200)
+	return response
 
 @app.route('/search', methods=['GET','POST'])
 def search_loc():
@@ -32,8 +33,8 @@ def search_loc():
 			else:
 				info.append((result['id'],result['commonName'],result['lat'],result['lon']))
 				app.database['save_records'].insert_one(result)
-		return render_template('search.html',info=info)
-
+		response = make_response(render_template('search.html',info=info),500)
+		return response	
 
 @app.route('/profile/add', methods=['POST'])
 def save_user_record():
@@ -92,21 +93,21 @@ def login():
 			if encry(password) == user['password']:
 				session['username'] = user['username']
 				session['role'] = user['role']
+				session.permanent = True
 				print(session['role'])
 				if session.get('role') == 'admin':
 					return redirect('/admin')
-
 				return redirect('/')
 			else:
 				msg = "Invalid password"
 				print(msg)
-				return redirect('/login')
+				response = make_response(redirect('/login'),401)
+				return response
 		else :
 			msg = "user not found"
 			print(msg)
-			return redirect('/login')
-
-		return render_template('login.html')
+			response = make_response(redirect('/login'),401)
+			return response
 
 	if request.method == 'GET':
 		return render_template('login.html')
@@ -141,7 +142,8 @@ def signup():
 			else:
 				msg = 'please check your password'
 				print(msg)
-				return render_template('signup.html',msg=msg)
+				response = make_response(render_template('signup.html',msg=msg),201)
+				return response
 
 	if request.method == 'GET':
 		return render_template('signup.html')
