@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, session, jsonify
 from helper import search, encry
 from dotenv import dotenv_values
 from pymongo import MongoClient
-
+import hashlib
 
 config = dotenv_values(".env")
 
@@ -10,8 +10,6 @@ def startup_db_client():
     app.mongodb_client = MongoClient(config["ATLAS_URI"])
     app.database = app.mongodb_client[config["DB_NAME"]]
     print("Connected to the MongoDB database!")
-    #app.database['user_info'].insert_one({"user name": "admin@gmail.com", "password": encry("admin"), "role":"admin"})
-    #app.database['user_info'].update_one({"user name":'1@1.com'},[{"$set":{"user name":"username","password":"password"}}])
 
 app = Flask(__name__)
 app.secret_key = 'assdggrvbsesg'
@@ -84,20 +82,21 @@ def delete_user_record():
 	else:
 		return redirect('/')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 	if request.method == 'POST':
 		email = request.form.get('email')
 		password = request.form.get('password')
-		user = app.database['user_info'].find_one({"user name":email})
+
+		user = app.databse['userinfo'].find_one({"username":email})
 		if user:
 			if encry(password) == user['password']:
-				session['username'] = user['user name']
+				session['username'] = user['username']
 				session['role'] = user['role']
-				session.permanent = True
+				print(session['role'])
 				if session.get('role') == 'admin':
-					return redirect('/admin' )
+					return redirect('/admin')
+
 				return redirect('/')
 			else:
 				return redirect('/signup')
@@ -105,7 +104,6 @@ def login():
 
 	if request.method == 'GET':
 		return render_template('login.html')
-
 
 @app.context_processor
 def context():
@@ -117,20 +115,24 @@ def context():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-
 	if request.method == 'POST':
 		email = request.form.get('email')
-		email_exist = app.database['user_info'].find_one({ "user name": email})
+		email_exist = app.database['user_info'].find_one({"user name":email})
 		if email_exist:
-			msg='email is existed!'
+			msg='email already existed!'
 			return render_template('signup.html',msg=msg)
 		else:
 			password = request.form.get('password')
-			password = encry(password)
-			app.database['user_info'].insert_one({ "user name": email, "password": password,"role": "user" })
-			return redirect('/')
-
-	if request.method == 'GET':
+			password2 = input("please re-enter your password: ") #double check password
+			if password == password2:
+				msg = 'Signup success'
+				password = encry(password)
+				app.database['user_info'].insert_one({ "user name": email, "password": password,"role": "user" })
+			return render_template('signup.html')
+	else:
+			msg = 'please check your password'
+			return render_template('signup.html')
+if request.method == 'GET':
 		return render_template('signup.html')
 
 @app.route('/logout')

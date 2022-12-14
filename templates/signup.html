@@ -12,19 +12,23 @@
 <body class="text-center">
     <main class="form-signin w-100 m-auto">
 
-    <form action="/signup" style="margin-top: 5%;    padding: 10% 35%;" method="POST"> 
-        <h1 class="h3 mb-3 fw-normal">Sign up</h1>
-        <div class="form-floating">
-            <input type="email" class="form-control" name="email" id="floatingInput"  placeholder="Email" required>
-            <label for="floatingInput">Email Address</label>
-        </div>
-        <div class="form-floating">
-            <input type="password" class="form-control" name="password" id="floatingPassword" placeholder="Passowrd" required>
-            <label for="floatingPassword">Password</label>
-        </div>
-        <button class="w-100 btn btn-lg btn-primary" type="submit">Signup</button>
-    </form>
-    <h2 style="color: #ff0000">  {{ msg }}  </h2>
+        <form style="margin-top: 5%;    padding: 10% 35%;">
+            <h1 class="h3 mb-3 fw-normal">Sign up</h1>
+            <div class="form-floating">
+                <input type="email" class="form-control" name="email" id="floatingInput" placeholder="Email">
+                <label for="floatingInput">Email Address</label>
+            </div>
+            <div class="form-floating">
+                <input type="password" class="form-control" name="password" id="floatingPassword" placeholder="Passowrd">
+                <label for="floatingPassword">Password</label>
+            </div>
+            <div class="form-floating">
+                <input type="password" class="form-control" name="password2" id="floatingPassword2" placeholder="Please re-enter your passowrd">
+                <label for="floatingPassword2">Password</label>
+            </div>
+            <button class="w-100 btn btn-lg btn-primary" type="submit">Login</button>
+        </form>
+
     </main>
 
 
