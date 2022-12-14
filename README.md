@@ -84,6 +84,7 @@ def delete_user_record():
 
 Bike searching uses an API from the TFL service to convert complex JSON data into tables by using script that are easy for users to understand. 
 In the table, we will show ('Bike_id', 'CommonName', 'Lat', 'Lon') which get from the API. 
+
 ```
 def search(query):
     url = f"https://api.tfl.gov.uk/BikePoint/Search?query={query}"
@@ -136,34 +137,31 @@ def search(query):
 
 ## 3. Cloud Database
 
+The Application uses MongoDB Atlas for the database. Atlas is a cloud database hosted by MongoDB itself. 
+Further, we use MongoDB Compass as the client side application to view and manage the data manually.   
+
 ## 4. Option2
 
-### 4.1 Https
+### 4.1 HTTPS
+
+The website `cloud.bayonetbaron.tech` is served over https, using SSL encryption. We're using a certificate issued by Let's Encrypt certificate authority generated using certbot application.  
+All requests sent to the server over port 80 (HTTP) are automatically redirected to 443 (HTTPS) by NGINX proxy.
 
 ### 4.2 Hash-based authentication
 
-All password will be hash before saving into database whatever in update info or create account.
+All password will be hash before saving into database whatever in update info or create account. Hashing is done via SHA256 algorithm using the following 
 
 ```
 def encry(password):
     password = hashlib.sha256(password.encode('utf-8')).hexdigest()
     return password
-
-update account information
-password = encry(password)
-app.database['user_info'].update_one({"user name":username},[{"$set":{"password":password}}])
-
-create new account
-password = encry(password)
-app.database['user_info'].insert_one({ "user name": email, "password": password,"role": "user" })
 ```
-
-
 
 
 ### 4.3 Implement user accounts and access management
 
 Different role account can do different job. In this case, 'Admin' can access /admin to manage all account information. However, 'User' cannot access to the admin page.
+
 ```
 @app.route('/admin', methods=['GET','POST'])
 def adminControl():
