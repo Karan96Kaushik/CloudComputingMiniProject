@@ -118,7 +118,7 @@ def context():
 def signup():
 	if request.method == 'POST':
 		email = request.form.get('email')
-		email_exist = app.database['user_info'].find_one({"user name":email})
+		email_exist = app.database['user_info'].find_one({"username":email})
 		if email_exist:
 			msg='email already existed!'
 			return render_template('signup.html',msg=msg)
@@ -129,7 +129,7 @@ def signup():
 			if password == password2:
 				msg = 'Signup success'
 				password = encry(password)
-				app.database['user_info'].insert_one({ "user name": email, "password": password,"role": "user" })
+				app.database['user_info'].insert_one({ "username": email, "password": password,"role": "user" })
 				return render_template('signup.html',msg=msg)
 			else:
 				msg = 'please check your password'
@@ -151,13 +151,13 @@ def adminControl():
 		users = app.database['user_info'].find({"role": "user"})
 		userinfo = []
 		for user in users:			
-			userinfo.append((user['_id'],user['user name'],user['password']))
+			userinfo.append((user['_id'],user['username'],user['password']))
 		return render_template('admin_page.html',userinfo=userinfo)
 
 	if request.method=='POST':
 		username = request.form.get('username')
 		if username:
-			app.database['user_info'].delete_one({"user name":username})
+			app.database['user_info'].delete_one({"username":username})
 			print('success')
 		return redirect('/admin')
 
@@ -168,7 +168,7 @@ def update():
 		username = request.form.get('username')
 		password = request.form.get('password')
 		password = encry(password)
-		app.database['user_info'].update_one({"user name":username},[{"$set":{"password":password}}])
+		app.database['user_info'].update_one({"username":username},[{"$set":{"password":password}}])
 		return redirect('/admin')
 
 
