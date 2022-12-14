@@ -7,9 +7,9 @@ import hashlib
 config = dotenv_values(".env")
 
 def startup_db_client():
-    app.mongodb_client = MongoClient(config["ATLAS_URI"])
-    app.database = app.mongodb_client[config["DB_NAME"]]
-    print("Connected to the MongoDB database!")
+	app.mongodb_client = MongoClient(config["ATLAS_URI"])
+	app.database = app.mongodb_client[config["DB_NAME"]]
+	print("Connected to the MongoDB database!")
 
 app = Flask(__name__)
 app.secret_key = 'assdggrvbsesg'
@@ -123,16 +123,18 @@ def signup():
 			return render_template('signup.html',msg=msg)
 		else:
 			password = request.form.get('password')
-			password2 = input("please re-enter your password: ") #double check password
+			password2 = request.form.get('password2')
+			# password2 = input("please re-enter your password: ") #double check password
 			if password == password2:
 				msg = 'Signup success'
 				password = encry(password)
 				app.database['user_info'].insert_one({ "user name": email, "password": password,"role": "user" })
-			return render_template('signup.html')
-	else:
-			msg = 'please check your password'
-			return render_template('signup.html')
-if request.method == 'GET':
+				return render_template('signup.html',msg=msg)
+			else:
+				msg = 'please check your password'
+				return render_template('signup.html',msg=msg)
+
+	if request.method == 'GET':
 		return render_template('signup.html')
 
 @app.route('/logout')
