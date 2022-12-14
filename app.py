@@ -87,8 +87,7 @@ def login():
 	if request.method == 'POST':
 		email = request.form.get('email')
 		password = request.form.get('password')
-
-		user = app.database['userinfo'].find_one({"username":email})
+		user = app.database['user_info'].find_one({"username":email})
 		if user:
 			if encry(password) == user['password']:
 				session['username'] = user['username']
@@ -100,7 +99,13 @@ def login():
 				return redirect('/')
 			else:
 				msg = "Invalid password"
+				print(msg)
 				return redirect('/login')
+		else :
+			msg = "user not found"
+			print(msg)
+			return redirect('/login')
+
 		return render_template('login.html')
 
 	if request.method == 'GET':
