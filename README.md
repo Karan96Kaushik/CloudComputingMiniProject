@@ -35,6 +35,24 @@ def signup():
 ```
 ### Read
 
+```
+@app.route('/profile')
+def profile():
+	user = session.get('username')
+	info = []
+	if user:
+		info = getInfo(user)
+		return render_template('profiles.html',info=info)
+
+def getInfo(user):
+	info = []
+	profiles = app.database['personal_records'].find({"user":user})
+	for profile in profiles:
+		record = profile['record']
+		info.append((record['id'],record['commonName'],record['lat'],record['lon']))
+	return info
+```
+
 
 ### Update
 ```
@@ -50,23 +68,17 @@ def update():
 ```
 ### Delete
 ```
-@app.route('/admin', methods=['GET','POST'])
-def adminControl():
-	if request.method=='GET':
-		if session.get('role') != 'admin':
-			return redirect('/')
-		users = app.database['user_info'].find({"role": "user"})
-		userinfo = []
-		for user in users:			
-			userinfo.append((user['_id'],user['user name'],user['password']))
-		return render_template('admin_page.html',userinfo=userinfo)
-
-	if request.method=='POST':
-		username = request.form.get('username')
-		if username:
-			app.database['user_info'].delete_one({"user name":username})
-			print('success')
-		return redirect('/admin')
+@app.route('/profile/delete',methods=['POST'])
+def delete_user_record():
+	user = session.get('username')
+	if user:
+		id = request.form.get('id')
+		record_id = app.database['personal_records'].find_one({"id":id})
+		app.database['personal_records'].delete_one({"record['id']":record_id})
+		info = getInfo(user)
+		return render_template('profiles.html',info=info)
+	else:
+		return redirect('/')
 ```
 ## 2. External APIs
 
