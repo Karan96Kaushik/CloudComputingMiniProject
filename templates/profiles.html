@@ -1,0 +1,40 @@
+{% include 'header.html'%}
+
+<div class="mt-4">
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col" colspan="4" class="text-center">Id</th>
+            <th scope="col" colspan="4" class="text-center">Common Name</th>
+            <th scope="col" colspan="3" class="text-center">Lat</th>
+            <th scope="col" colspan="3" class="text-center">Lon</th>
+            <th scope="col" colspan="3" class="text-center">Operation</th>
+
+        </tr>
+        </thead>
+        <tbody>
+            {% for sinfo in info %}
+            <form action="/profile/delete", method="POST">
+            <tr>
+                <input name="id" value="{{sinfo[0]}}" hidden>
+                <td colspan="3" class="text-center">
+                    {{sinfo[0]}}
+                </td>
+                <td colspan="3" class="text-center" name="commonName">
+                    {{sinfo[1]}}
+                </td>
+                <td colspan="3" class="text-center" name="lat">
+                    {{sinfo[2]}}
+                </td>
+                <td colspan="3" class="text-center" name="lon"> 
+                    {{sinfo[3]}}
+                </td>
+                <td colspan="3" class="text-center">
+                    <button class="btn btn-primary"> Delete </button>
+                </td>
+            </tr>
+            </form>
+            {% endfor %}
+            </tbody>
+    </table>
+</div>

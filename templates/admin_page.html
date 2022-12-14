@@ -1,0 +1,59 @@
+{% include 'header.html'%}
+
+<table class="table">
+    <thead>    
+        <th scope="col" colspan="5" class="text-center">
+            username
+        </th>
+        <th scope="col" colspan="5" class="text-center">
+            password
+        </th>
+        <th scope="col" colspan="5" class="text-center">
+            operation
+        </th>
+    </thead>
+
+    <tbody>
+    {% for uinfo in userinfo %}
+    <form action="/admin/update", method="POST">
+    <tr>
+        <input name="id" value={{uinfo[0]}} type="hidden">
+        <td colspan="5" class="text-center" id="username">
+            <input name="username" value={{uinfo[1]}} >
+        </td>
+        <td colspan="5" class="text-center">
+            <input name="password" value={{uinfo[2]}}>
+        </td>
+        <td colspan="5" class="text-center">
+            <button onclick = "deleteConfirm(this)" type="put" name="update">
+                UPDATE
+            </button>
+            <button onclick = "deleteConfirm(this)" type="delete" name="delete">
+                DELETE
+            </button>
+        </td>
+    </tr>
+    </form>
+    {% endfor %}
+    </tbody>
+
+</table>
+
+ 
+<script>
+    let username="";
+    function update(node) {
+        username = node.parentNode.querySelector('.username').value;
+        if (keyword) {
+            document.getElementById("username").value = username;
+            fetch("/admin")
+        }
+    }
+
+    function deleteConfirm() { 
+        if (!confirm("Are you sure to delete?")) { 
+            window.event.returnValue = false; 
+        } 
+    } 
+
+</script>
