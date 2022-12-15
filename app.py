@@ -189,12 +189,10 @@ def login():
 				session['role'] = user['role']
 				session.permanent = True
 
-				if session.get('role') == 'admin':
-					resp = jsonify(admin=True, user=user)
-					resp.status_code = 200
-					return resp
+				del user['_id']
+				del user['password']
 
-				resp = jsonify(admin=True, user=user)
+				resp = jsonify(user=user)
 				resp.status_code = 200
 				return resp
 			else:
