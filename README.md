@@ -135,7 +135,7 @@ def encry(password):
 ### 4.3 Implement user accounts and access management
 
 Different role account can do different job. In this case, 'Admin' can access /admin to manage all account information. However, 'User' cannot access to the admin page.
-
+The datas of users' name and password are saved in the cloud dataset. When the 'admin' accesses, it can view all of the users' information and execute the following commands: update user's password or delete one's account.
 ```
 @app.route('/admin', methods=['GET','POST'])
 def adminControl():
