@@ -29,7 +29,7 @@ def getInfo(user):
 
 @app.route('/')
 def index():
-	resp = jsonify(msg="Bikepoint API endpoint", version="1.0", authors="Karan Kaushik, ")
+	resp = jsonify(msg="Bikepoint API endpoint", version="1.0", authors="Karan Kaushik, Yupeng, Hao, Xuan")
 	resp.status_code = 200
 	return resp
 
