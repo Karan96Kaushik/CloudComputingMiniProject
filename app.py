@@ -135,7 +135,7 @@ def update_user_record():
 			app.database['personal_records'].update_one({"user":user,"record.id":id},[{"$set":{"record.name":name}}])
 
 			resp = jsonify(msg="Updated")
-			resp.status_code = 201
+			resp.status_code = 202
 			return resp
 		else:
 			msg = "Record not found"
