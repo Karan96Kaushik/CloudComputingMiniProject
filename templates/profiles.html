@@ -14,7 +14,7 @@
         </thead>
         <tbody>
             {% for sinfo in info %}
-            <form action="/profile/delete", method="POST">
+            <form action="/profile", method="DELETE">
             <tr>
                 <input name="id" value="{{sinfo[0]}}" hidden>
                 <td colspan="3" class="text-center">
