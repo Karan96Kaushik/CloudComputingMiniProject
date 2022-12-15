@@ -21,7 +21,8 @@ def getInfo(user):
 		for profile in profiles:
 			record = profile['record']
 			if record == None: continue
-			record['id'] = str(record['id'])
+			record = parse_json(record)
+			del record['_id']
 			info.append(record)
 			# info.append((record['id'],record['commonName'],record['lat'],record['lon']))
 	return info
@@ -56,7 +57,7 @@ def search_loc():
 			else:
 				app.database['save_records'].insert_one(result)
 
-		resp = jsonify(results=parse_json(results))
+		resp = jsonify(results=info)
 		resp.status_code = 200
 		return resp
 
@@ -67,7 +68,7 @@ def profile():
 	print(user)
 	if user:
 		info = getInfo(user)
-		resp = jsonify(info=info)
+		resp = jsonify(saved_points=info)
 		resp.status_code = 200
 		return resp
 	else:
@@ -81,21 +82,25 @@ def save_user_record():
 	user = session.get('username')
 	if user:
 		id = request.form.get('id')
-		exist = app.database['personal_records'].find_one({"user":user,"record['id']":id})
-		#exist = exist['record']['id']
-		#print(exist)
+		exist = app.database['personal_records'].find_one({"user":user,'record.id':id})
+		print(exist, id)
 		if exist:
 			resp = jsonify(msg="Duplicate entry")
 			resp.status_code = 400
 			return resp
 		else:
 			record_id = app.database['save_records'].find_one({"id":id})
+			if record_id == None: 
+				resp = jsonify(msg="Bikepoint not found, please search and try again")
+				resp.status_code = 400
+				return resp
+
 			app.database['personal_records'].insert_one({"user":user,"record":record_id})
-			resp = jsonify(success=True, msg="Added")
+			resp = jsonify(msg="Added")
 			resp.status_code = 201
 			return resp
 	else:
-		resp = jsonify(success=False, msg="Please login")
+		resp = jsonify(msg="Please login")
 		resp.status_code = 401
 		return resp
 
@@ -107,12 +112,12 @@ def delete_user_record():
 		record_id = app.database['personal_records'].find_one({"id":id})
 		app.database['personal_records'].delete_one({"id":id})
 		
-		resp = jsonify(success=True, msg="Deleted")
+		resp = jsonify(msg="Deleted")
 		resp.status_code = 204
 		return resp
 
 	else:
-		resp = jsonify(success=False, msg="Please login")
+		resp = jsonify(msg="Please login")
 		resp.status_code = 401
 		return resp
 
@@ -207,8 +212,9 @@ def adminControl():
 
 		users = app.database['user_info'].find({"role": "user"})
 		userinfo = []
-		for user in users:			
-			userinfo.append((user['_id'],user['username'],user['password']))
+		for user in users:		
+			del user['password']	
+			userinfo.append(user)
 
 		resp = jsonify(users=userinfo)
 		resp.status_code = 200
