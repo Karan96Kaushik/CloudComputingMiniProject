@@ -132,7 +132,7 @@ def update_user_record():
 		exist = app.database['personal_records'].find_one({"user":user,'record.id':id})
 
 		if exist != None:
-			app.database['personal_records'].update_one({"user":user,"record":record_id},[{"$set":{"name":name}}])
+			app.database['personal_records'].update_one({"user":user,"record.id":id},[{"$set":{"record.name":name}}])
 
 			resp = jsonify(msg="Updated")
 			resp.status_code = 201
@@ -154,11 +154,17 @@ def delete_user_record():
 	user = session.get('username')
 	if user:
 		id = request.form.get('id')
-		record_id = app.database['personal_records'].find_one({"id":id})
-		app.database['personal_records'].delete_one({"id":id})
-		
+
+		r = app.database['personal_records'].find_one({"user":user,"record.id":id})
+		if r == None: 
+			resp = jsonify(msg="Record not found")
+			resp.status_code = 404
+			return resp
+
+		app.database['personal_records'].delete_one({"user":user,"record.id":id})
+		msg = "Record not found"
 		resp = jsonify(msg="Deleted")
-		resp.status_code = 204
+		resp.status_code = 202
 		return resp
 
 	else:
@@ -188,7 +194,7 @@ def login():
 					resp.status_code = 200
 					return resp
 
-				resp = jsonify(user=user)
+				resp = jsonify(admin=True, user=user)
 				resp.status_code = 200
 				return resp
 			else:
@@ -251,18 +257,23 @@ def logout():
 # Admin route for admin users
 @app.route('/admin', methods=['GET', 'DELETE', 'PUT'])
 def adminControl():
+
+	# Access authentication
+	if session.get('role') != 'admin':
+		msg = 'Unauthorized'
+		resp = jsonify(msg=msg)
+		resp.status_code = 401
+		return resp
+
 	# List all users
 	if request.method=='GET':
-		if session.get('role') != 'admin':
-			msg = 'Unauthorized'
-			resp = jsonify(msg=msg)
-			resp.status_code = 401
-			return resp
 
 		users = app.database['user_info'].find({"role": "user"})
 		userinfo = []
 		for user in users:		
+			user = parse_json(user)
 			del user['password']	
+			del user['_id']	
 			userinfo.append(user)
 
 		resp = jsonify(users=userinfo)
@@ -271,28 +282,44 @@ def adminControl():
 
 	# Delete user
 	if request.method=='DELETE':
-		if session.get('role') != 'admin':
-			msg = 'Unauthorized'
-			resp = jsonify(msg=msg)
-			resp.status_code = 401
-			return resp
 
 		username = request.form.get('username')
-		if username:
+
+		u = app.database['user_info'].find_one({"username":username})
+		if u != None:
 			app.database['user_info'].delete_one({"username":username})
 
-		msg = 'User deleted'
-		resp = jsonify(msg=msg)
-		resp.status_code = 204
-		return resp
+			msg = 'User deleted'
+			resp = jsonify(msg=msg)
+			resp.status_code = 202
+			return resp
+		else: 
+			msg = "User not found"
+			resp = jsonify(msg=msg)
+			resp.status_code = 404
+			return resp
 
 	# Update user
 	if request.method=='PUT':
 		username = request.form.get('username')
 		password = request.form.get('password')
+
 		password = encry(password)
-		app.database['user_info'].update_one({"username":username},[{"$set":{"password":password}}])
-		
+
+		u = app.database['user_info'].find_one({"username":username})
+		if u != None:
+			app.database['user_info'].update_one({"username":username},[{"$set":{"password":password}}])
+
+			msg = 'User updated'
+			resp = jsonify(msg=msg)
+			resp.status_code = 202
+			return resp
+		else: 
+			msg = "User not found"
+			resp = jsonify(msg=msg)
+			resp.status_code = 404
+			return resp
+
 		msg = 'User updated'
 		resp = jsonify(msg=msg)
 		resp.status_code = 200
