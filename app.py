@@ -32,6 +32,7 @@ def index():
 	response = make_response(render_template('index.html'),200)
 	return response
 
+# Search from Bikepoint API
 @app.route('/search', methods=['GET'])
 def search_loc():
 	if request.method == 'GET':
@@ -61,6 +62,7 @@ def search_loc():
 		resp.status_code = 200
 		return resp
 
+# Get saved endpoints
 @app.route('/profile', methods=['GET'])
 def profile():
 	user = session.get('username')
@@ -77,13 +79,21 @@ def profile():
 		resp.status_code = 401
 		return resp
 
+# Profile record creation
 @app.route('/profile', methods=['POST'])
 def save_user_record():
 	user = session.get('username')
 	if user:
+
 		id = request.form.get('id')
+		name = request.form.get('name')
+
+		# Default name is bikepoint ID
+		if name == None: name = id
+
 		exist = app.database['personal_records'].find_one({"user":user,'record.id':id})
 		print(exist, id)
+
 		if exist:
 			resp = jsonify(msg="Duplicate entry")
 			resp.status_code = 400
@@ -95,6 +105,8 @@ def save_user_record():
 				resp.status_code = 400
 				return resp
 
+			record_id['name'] = name
+
 			app.database['personal_records'].insert_one({"user":user,"record":record_id})
 			resp = jsonify(msg="Added")
 			resp.status_code = 201
@@ -104,6 +116,7 @@ def save_user_record():
 		resp.status_code = 401
 		return resp
 
+# Delete saved bikepoint
 @app.route('/profile',methods=['DELETE'])
 def delete_user_record():
 	user = session.get('username')
@@ -121,18 +134,19 @@ def delete_user_record():
 		resp.status_code = 401
 		return resp
 
+# Login route
 @app.route('/login', methods=['GET'])
 def login():
 	if request.method == 'GET':
 
 		email = request.args.get('email')
 		password = request.args.get('password')
-		print(email, password)
 		user = app.database['user_info'].find_one({"username":email})
 		user = parse_json(user)
-		print(user)
+
 		if user:
 			if encry(password) == user['password']:
+				# Save to serverside session
 				session['username'] = user['username']
 				session['role'] = user['role']
 				session.permanent = True
@@ -163,8 +177,8 @@ def context():
 		return {'login':user}
 	return {}
 
-
-@app.route('/signup', methods=['GET', 'POST'])
+# Signup route
+@app.route('/signup', methods=['POST'])
 def signup():
 	if request.method == 'POST':
 		email = request.form.get('email')
@@ -193,6 +207,7 @@ def signup():
 				resp.status_code = 400
 				return resp
 
+# Logout user and delete serverside session
 @app.route('/logout')
 def logout():
 	session.clear()
@@ -201,8 +216,10 @@ def logout():
 	resp.status_code = 200
 	return resp
 
-@app.route('/admin', methods=['GET', 'POST', 'PUT'])
+# Admin route for admin users
+@app.route('/admin', methods=['GET', 'DELETE', 'PUT'])
 def adminControl():
+	# List all users
 	if request.method=='GET':
 		if session.get('role') != 'admin':
 			msg = 'Unauthorized'
@@ -220,7 +237,8 @@ def adminControl():
 		resp.status_code = 200
 		return resp
 
-	if request.method=='POST':
+	# Delete user
+	if request.method=='DELETE':
 		if session.get('role') != 'admin':
 			msg = 'Unauthorized'
 			resp = jsonify(msg=msg)
@@ -236,6 +254,7 @@ def adminControl():
 		resp.status_code = 204
 		return resp
 
+	# Update user
 	if request.method=='PUT':
 		username = request.form.get('username')
 		password = request.form.get('password')
