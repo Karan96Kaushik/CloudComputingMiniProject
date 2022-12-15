@@ -1,4 +1,10 @@
-# CloudComputingMiniProject
+# Cloud Computing Mini Project
+
+## Group 9 Members:
+Karan Kaushik
+Li, Hao
+Luo, Yupeng
+Yang, Ruixuan
 
 ## Group 9 Bike station searching
 
