@@ -226,22 +226,14 @@ def signup():
 			return resp
 		else:
 			password = request.form.get('password')
-			password2 = request.form.get('password2')
-			# password2 = input("please re-enter your password: ") #double check password
-			if password == password2:
-				password = encry(password)
-				app.database['user_info'].insert_one({ "username": email, "password": password,"role": "user" })
-				
-				msg = 'Signup success'
-				resp = jsonify(msg=msg)
-				resp.status_code = 201
-				return resp
+			password = encry(password)
+			app.database['user_info'].insert_one({ "username": email, "password": password,"role": "user" })
+			
+			msg = 'Signup success'
+			resp = jsonify(msg=msg)
+			resp.status_code = 201
+			return resp
 
-			else:
-				msg = 'Please check your password'
-				resp = jsonify(msg=msg)
-				resp.status_code = 400
-				return resp
 
 # Logout user and delete serverside session
 @app.route('/logout')
