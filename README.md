@@ -4,7 +4,7 @@
 
 The search for bicycle stations comes from the external TFL API and the user can access the information by entering the location. 
 app has two different accounts with different roles, 'admin' and 'user'. The user can save the results of a search by logging in and then the admin can manage all the account information.
-Each type of account is encrypted with a password using SHA-256 at the time of registration. The data will be stored in the ().
+Each type of account is encrypted with a password using SHA-256 at the time of registration.
 
 ## 1. Dynamically REST API(CRUD)
 
@@ -89,49 +89,23 @@ In the table, we will show ('Bike_id', 'CommonName', 'Lat', 'Lon') which get fro
 def search(query):
     url = f"https://api.tfl.gov.uk/BikePoint/Search?query={query}"
     return requests.get(url).json()
-
-<script>
-    let keyword="";
-    function search(node) {
-        keyword = node.parentNode.querySelector('.keyword').value;
-        document.getElementById("searchBox").classList.add("hide");
-        document.getElementById("searchResults").classList.remove("hide");
-        if (keyword) {
-            document.getElementById("keyword").value = keyword;
-            fetch(`/search?query=${keyword}`).then(res => res.json()).then(data => {
-                renderResults(data);
-            })
-        }
-    }
-
-    function renderResults(data) {
-        if (data.length === 0) {
-            document.getElementById("tableResults").innerHTML = `<tr><td colspan="4" class="text-center">No results found</td></tr>`;
-        } else {
-            const tableResults = document.querySelector('#tableResults');
-            tableResults.innerHTML = '';
-            data.forEach((item) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                <form action='/save_records' method='POST'>
-                    
-                    <input name='bike_id' value=${item.id}>
-                    <input name='bike_name' value=${item.commonName}>
-                    <input name='bike_lat' value=${item.lat}>
-                    <input name='bike_lon' value=${item.lon}>
-                    <button name="save">
-                        Save
-                    </button>
-                </form>
-                `;
-                tableResults.appendChild(tr);
-            })
-        }
-    }
-</script>
+    
+@app.route('/search', methods=['GET','POST'])
+def search_loc():
+	if request.method == 'POST':
+		info=[]
+		query = request.form.get('loc')
+		results =  search(query)
+		for result in results:
+			commonName = result['commonName']
+			info_exist = app.database['save_records'].find_one({"commonName":commonName})
+			if info_exist:
+				info.append((info_exist['id'],info_exist['commonName'],info_exist['lat'],info_exist['lon']))
+			else:
+				info.append((result['id'],result['commonName'],result['lat'],result['lon']))
+				app.database['save_records'].insert_one(result)
+		return render_template('search.html',info=info)
 ```
-
-
 
 
 
