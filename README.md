@@ -22,33 +22,52 @@ update the account information and delete saved results.
 ```
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-
 	if request.method == 'POST':
 		email = request.form.get('email')
-		email_exist = app.database['user_info'].find_one({ "user name": email})
+		email_exist = app.database['user_info'].find_one({"username":email})
 		if email_exist:
-			msg='email is existed!'
-			return render_template('signup.html',msg=msg)
+			msg='Email already existed'
+			resp = jsonify(msg=msg)
+			resp.status_code = 400
+			return resp
 		else:
 			password = request.form.get('password')
-			password = encry(password)
-			app.database['user_info'].insert_one({ "user name": email, "password": password,"role": "user" })
-			return redirect('/')
+			password2 = request.form.get('password2')
+			# password2 = input("please re-enter your password: ") #double check password
+			if password == password2:
+				password = encry(password)
+				app.database['user_info'].insert_one({ "username": email, "password": password,"role": "user" })
+				
+				msg = 'Signup success'
+				resp = jsonify(msg=msg)
+				resp.status_code = 201
+				return resp
 
-	if request.method == 'GET':
-		print("1")
-		return render_template('signup.html')
+			else:
+				msg = 'Please check your password'
+				resp = jsonify(msg=msg)
+				resp.status_code = 400
+				return resp
 ```
 ### Read
 
 ```
-@app.route('/profile')
+@app.route('/profile', methods=['GET'])
 def profile():
 	user = session.get('username')
 	info = []
+	print(user)
 	if user:
 		info = getInfo(user)
-		return render_template('profiles.html',info=info)
+		resp = jsonify(saved_points=info)
+		resp.status_code = 200
+		return resp
+	else:
+		msg="Please login"
+		resp = jsonify(msg=msg)
+		resp.status_code = 401
+		return resp
+
 
 def getInfo(user):
 	info = []
@@ -62,29 +81,39 @@ def getInfo(user):
 
 ### Update
 ```
-@app.route('/admin/update', methods=['POST'])
-def update():
-
-	if request.method=='POST':
+@app.route('/admin', methods=['GET', 'POST', 'PUT'])
+def adminControl():
+	if request.method=='PUT':
 		username = request.form.get('username')
 		password = request.form.get('password')
 		password = encry(password)
-		app.database['user_info'].update_one({"user name":username},[{"$set":{"password":password}}])
-		return redirect('/admin')
+		app.database['user_info'].update_one({"username":username},[{"$set":{"password":password}}])
+		
+		msg = 'User updated'
+		resp = jsonify(msg=msg)
+		resp.status_code = 200
+		return resp
+
 ```
 ### Delete
 ```
-@app.route('/profile/delete',methods=['POST'])
+@app.route('/profile',methods=['DELETE'])
 def delete_user_record():
 	user = session.get('username')
 	if user:
 		id = request.form.get('id')
 		record_id = app.database['personal_records'].find_one({"id":id})
-		app.database['personal_records'].delete_one({"record['id']":record_id})
-		info = getInfo(user)
-		return render_template('profiles.html',info=info)
+		app.database['personal_records'].delete_one({"id":id})
+		
+		resp = jsonify(msg="Deleted")
+		resp.status_code = 204
+		return resp
+
 	else:
-		return redirect('/')
+		resp = jsonify(msg="Please login")
+		resp.status_code = 401
+		return resp
+
 ```
 ## 2. External APIs
 
@@ -92,25 +121,36 @@ Bike searching uses an API from the TFL service to convert complex JSON data int
 In the table, we will show ('Bike_id', 'CommonName', 'Lat', 'Lon') which get from the API. 
 
 ```
-def search(query):
-    url = f"https://api.tfl.gov.uk/BikePoint/Search?query={query}"
-    return requests.get(url).json()
-    
-@app.route('/search', methods=['GET','POST'])
+
+@app.route('/search', methods=['GET'])
 def search_loc():
-	if request.method == 'POST':
+	if request.method == 'GET':
 		info=[]
-		query = request.form.get('loc')
+		query = request.args.get('loc')
 		results =  search(query)
 		for result in results:
+
+			del result["$type"]
+			del result["additionalProperties"]
+			del result["children"]
+			del result["childrenUrls"]
+			del result["url"]
+			del result["placeType"]
+
+			info.append(result)
+
 			commonName = result['commonName']
 			info_exist = app.database['save_records'].find_one({"commonName":commonName})
+			print(info_exist)
 			if info_exist:
-				info.append((info_exist['id'],info_exist['commonName'],info_exist['lat'],info_exist['lon']))
+				pass
 			else:
-				info.append((result['id'],result['commonName'],result['lat'],result['lon']))
 				app.database['save_records'].insert_one(result)
-		return render_template('search.html',info=info)
+
+		resp = jsonify(results=info)
+		resp.status_code = 200
+		return resp
+
 ```
 
 
@@ -143,23 +183,53 @@ def encry(password):
 Different role account can do different job. In this case, 'Admin' can access /admin to manage all account information. However, 'User' cannot access to the admin page.
 
 ```
-@app.route('/admin', methods=['GET','POST'])
+
+@app.route('/admin', methods=['GET', 'POST', 'PUT'])
 def adminControl():
 	if request.method=='GET':
 		if session.get('role') != 'admin':
-			return redirect('/')
+			msg = 'Unauthorized'
+			resp = jsonify(msg=msg)
+			resp.status_code = 401
+			return resp
+
 		users = app.database['user_info'].find({"role": "user"})
 		userinfo = []
-		for user in users:			
-			userinfo.append((user['_id'],user['user name'],user['password']))
-		return render_template('admin_page.html',userinfo=userinfo)
+		for user in users:		
+			del user['password']	
+			userinfo.append(user)
+
+		resp = jsonify(users=userinfo)
+		resp.status_code = 200
+		return resp
 
 	if request.method=='POST':
+		if session.get('role') != 'admin':
+			msg = 'Unauthorized'
+			resp = jsonify(msg=msg)
+			resp.status_code = 401
+			return resp
+
 		username = request.form.get('username')
 		if username:
-			app.database['user_info'].delete_one({"user name":username})
-			print('success')
-		return redirect('/admin')
+			app.database['user_info'].delete_one({"username":username})
+
+		msg = 'User deleted'
+		resp = jsonify(msg=msg)
+		resp.status_code = 204
+		return resp
+
+	if request.method=='PUT':
+		username = request.form.get('username')
+		password = request.form.get('password')
+		password = encry(password)
+		app.database['user_info'].update_one({"username":username},[{"$set":{"password":password}}])
+		
+		msg = 'User updated'
+		resp = jsonify(msg=msg)
+		resp.status_code = 200
+		return resp
+
 ```
 
 
