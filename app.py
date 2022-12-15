@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, jsonify, make_response
-from helper import search, encry
+from helper import search, encry, parse_json
 from dotenv import dotenv_values
 from pymongo import MongoClient
 import hashlib
@@ -14,29 +14,69 @@ def startup_db_client():
 app = Flask(__name__)
 app.secret_key = 'assdggrvbsesg'
 
+def getInfo(user):
+	info = []
+	profiles = app.database['personal_records'].find({"user":user})
+	if profiles != None:
+		for profile in profiles:
+			record = profile['record']
+			if record == None: continue
+			record['id'] = str(record['id'])
+			info.append(record)
+			# info.append((record['id'],record['commonName'],record['lat'],record['lon']))
+	return info
+
 @app.route('/')
 def index():
 	response = make_response(render_template('index.html'),200)
 	return response
 
-@app.route('/search', methods=['GET','POST'])
+@app.route('/search', methods=['GET'])
 def search_loc():
-	if request.method == 'POST':
+	if request.method == 'GET':
 		info=[]
-		query = request.form.get('loc')
+		query = request.args.get('loc')
 		results =  search(query)
 		for result in results:
+
+			del result["$type"]
+			del result["additionalProperties"]
+			del result["children"]
+			del result["childrenUrls"]
+			del result["url"]
+			del result["placeType"]
+
+			info.append(result)
+
 			commonName = result['commonName']
 			info_exist = app.database['save_records'].find_one({"commonName":commonName})
+			print(info_exist)
 			if info_exist:
-				info.append((info_exist['id'],info_exist['commonName'],info_exist['lat'],info_exist['lon']))
+				pass
 			else:
-				info.append((result['id'],result['commonName'],result['lat'],result['lon']))
 				app.database['save_records'].insert_one(result)
-		response = make_response(render_template('search.html',info=info),500)
-		return response	
 
-@app.route('/profile/add', methods=['POST'])
+		resp = jsonify(results=parse_json(results))
+		resp.status_code = 200
+		return resp
+
+@app.route('/profile', methods=['GET'])
+def profile():
+	user = session.get('username')
+	info = []
+	print(user)
+	if user:
+		info = getInfo(user)
+		resp = jsonify(info=info)
+		resp.status_code = 200
+		return resp
+	else:
+		msg="Please login"
+		resp = jsonify(msg=msg)
+		resp.status_code = 401
+		return resp
+
+@app.route('/profile', methods=['POST'])
 def save_user_record():
 	user = session.get('username')
 	if user:
@@ -45,72 +85,71 @@ def save_user_record():
 		#exist = exist['record']['id']
 		#print(exist)
 		if exist:
-			msg = "You've added!"
-			return redirect('/profile',msg=msg)
+			resp = jsonify(msg="Duplicate entry")
+			resp.status_code = 400
+			return resp
 		else:
 			record_id = app.database['save_records'].find_one({"id":id})
 			app.database['personal_records'].insert_one({"user":user,"record":record_id})
-			info = getInfo(user)
-			return render_template('profiles.html',info=info)
+			resp = jsonify(success=True, msg="Added")
+			resp.status_code = 201
+			return resp
 	else:
-		return redirect('/login')
+		resp = jsonify(success=False, msg="Please login")
+		resp.status_code = 401
+		return resp
 
-@app.route('/profile')
-def profile():
-	user = session.get('username')
-	info = []
-	if user:
-		info = getInfo(user)
-		return render_template('profiles.html',info=info)
-
-def getInfo(user):
-	info = []
-	profiles = app.database['personal_records'].find({"user":user})
-	for profile in profiles:
-		record = profile['record']
-		info.append((record['id'],record['commonName'],record['lat'],record['lon']))
-	return info
-
-@app.route('/profile/delete',methods=['POST'])
+@app.route('/profile',methods=['DELETE'])
 def delete_user_record():
 	user = session.get('username')
 	if user:
 		id = request.form.get('id')
 		record_id = app.database['personal_records'].find_one({"id":id})
-		app.database['personal_records'].delete_one({"record['id']":record_id})
-		info = getInfo(user)
-		return render_template('profiles.html',info=info)
-	else:
-		return redirect('/')
+		app.database['personal_records'].delete_one({"id":id})
+		
+		resp = jsonify(success=True, msg="Deleted")
+		resp.status_code = 204
+		return resp
 
-@app.route('/login', methods=['GET', 'POST'])
+	else:
+		resp = jsonify(success=False, msg="Please login")
+		resp.status_code = 401
+		return resp
+
+@app.route('/login', methods=['GET'])
 def login():
-	if request.method == 'POST':
-		email = request.form.get('email')
-		password = request.form.get('password')
+	if request.method == 'GET':
+
+		email = request.args.get('email')
+		password = request.args.get('password')
+		print(email, password)
 		user = app.database['user_info'].find_one({"username":email})
+		user = parse_json(user)
+		print(user)
 		if user:
 			if encry(password) == user['password']:
 				session['username'] = user['username']
 				session['role'] = user['role']
 				session.permanent = True
-				print(session['role'])
+
 				if session.get('role') == 'admin':
-					return redirect('/admin')
-				return redirect('/')
+					resp = jsonify(admin=True, user=user)
+					resp.status_code = 200
+					return resp
+
+				resp = jsonify(user=user)
+				resp.status_code = 200
+				return resp
 			else:
 				msg = "Invalid password"
-				print(msg)
-				response = make_response(redirect('/login'),401)
-				return response
+				resp = jsonify(msg=msg)
+				resp.status_code = 403
+				return resp
 		else :
-			msg = "user not found"
-			print(msg)
-			response = make_response(redirect('/login'),401)
-			return response
-
-	if request.method == 'GET':
-		return render_template('login.html')
+			msg = "User not found"
+			resp = jsonify(msg=msg)
+			resp.status_code = 404
+			return resp
 
 @app.context_processor
 def context():
@@ -126,60 +165,81 @@ def signup():
 		email = request.form.get('email')
 		email_exist = app.database['user_info'].find_one({"username":email})
 		if email_exist:
-			msg='email already existed!'
-			print(msg)
-			return render_template('signup.html',msg=msg)
+			msg='Email already existed'
+			resp = jsonify(msg=msg)
+			resp.status_code = 400
+			return resp
 		else:
 			password = request.form.get('password')
 			password2 = request.form.get('password2')
 			# password2 = input("please re-enter your password: ") #double check password
 			if password == password2:
-				msg = 'Signup success'
-				print(msg)
 				password = encry(password)
 				app.database['user_info'].insert_one({ "username": email, "password": password,"role": "user" })
-				return render_template('login.html',msg=msg)
-			else:
-				msg = 'please check your password'
-				print(msg)
-				response = make_response(render_template('signup.html',msg=msg),201)
-				return response
+				
+				msg = 'Signup success'
+				resp = jsonify(msg=msg)
+				resp.status_code = 201
+				return resp
 
-	if request.method == 'GET':
-		return render_template('signup.html')
+			else:
+				msg = 'Please check your password'
+				resp = jsonify(msg=msg)
+				resp.status_code = 400
+				return resp
 
 @app.route('/logout')
 def logout():
 	session.clear()
-	return redirect('/')
+	msg = 'Logout success'
+	resp = jsonify(msg=msg)
+	resp.status_code = 200
+	return resp
 
-@app.route('/admin', methods=['GET','POST'])
+@app.route('/admin', methods=['GET', 'POST', 'PUT'])
 def adminControl():
 	if request.method=='GET':
 		if session.get('role') != 'admin':
-			return redirect('/')
+			msg = 'Unauthorized'
+			resp = jsonify(msg=msg)
+			resp.status_code = 401
+			return resp
+
 		users = app.database['user_info'].find({"role": "user"})
 		userinfo = []
 		for user in users:			
 			userinfo.append((user['_id'],user['username'],user['password']))
-		return render_template('admin_page.html',userinfo=userinfo)
+
+		resp = jsonify(users=userinfo)
+		resp.status_code = 200
+		return resp
 
 	if request.method=='POST':
+		if session.get('role') != 'admin':
+			msg = 'Unauthorized'
+			resp = jsonify(msg=msg)
+			resp.status_code = 401
+			return resp
+
 		username = request.form.get('username')
 		if username:
 			app.database['user_info'].delete_one({"username":username})
-			print('success')
-		return redirect('/admin')
 
+		msg = 'User deleted'
+		resp = jsonify(msg=msg)
+		resp.status_code = 204
+		return resp
 
-@app.route('/admin/update', methods=['POST'])
-def update():
-	if request.method=='POST':
+	if request.method=='PUT':
 		username = request.form.get('username')
 		password = request.form.get('password')
 		password = encry(password)
 		app.database['user_info'].update_one({"username":username},[{"$set":{"password":password}}])
-		return redirect('/admin')
+		
+		msg = 'User updated'
+		resp = jsonify(msg=msg)
+		resp.status_code = 200
+		return resp
 
 
 if __name__ == '__main__':
