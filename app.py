@@ -29,8 +29,9 @@ def getInfo(user):
 
 @app.route('/')
 def index():
-	response = make_response(render_template('index.html'),200)
-	return response
+	resp = jsonify(msg="Bikepoint API endpoint", version="1.0", authors="Karan Kaushik, ")
+	resp.status_code = 200
+	return resp
 
 # Search from Bikepoint API
 @app.route('/search', methods=['GET'])
@@ -111,6 +112,37 @@ def save_user_record():
 			resp = jsonify(msg="Added")
 			resp.status_code = 201
 			return resp
+	else:
+		resp = jsonify(msg="Please login")
+		resp.status_code = 401
+		return resp
+
+# Profile record updation
+@app.route('/profile', methods=['PUT'])
+def update_user_record():
+	user = session.get('username')
+	if user:
+
+		id = request.form.get('id')
+		name = request.form.get('name')
+
+		# Default name is bikepoint ID
+		if name == None: name = id
+
+		exist = app.database['personal_records'].find_one({"user":user,'record.id':id})
+
+		if exist != None:
+			app.database['personal_records'].update_one({"user":user,"record":record_id},[{"$set":{"name":name}}])
+
+			resp = jsonify(msg="Updated")
+			resp.status_code = 201
+			return resp
+		else:
+			msg = "Record not found"
+			resp = jsonify(msg=msg)
+			resp.status_code = 404
+			return resp
+
 	else:
 		resp = jsonify(msg="Please login")
 		resp.status_code = 401
